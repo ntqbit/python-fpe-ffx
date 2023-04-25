@@ -66,7 +66,7 @@ class FFX:
         output_value = self._join(*val)
 
         if not self._satisfies_length(output_value):
-            return next_func(output_value)
+            return next_func(output_value, tweak)
 
         return output_value
 
