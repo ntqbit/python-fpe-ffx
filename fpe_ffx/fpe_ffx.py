@@ -8,6 +8,9 @@ class ECBCipher:
 
 
 def tweak_to_bytes(tweak):
+    if tweak is None:
+        return bytes()
+
     if isinstance(tweak, bytes):
         return tweak
 
@@ -33,7 +36,7 @@ class FFX:
         self._encryption_rounds = list(range(self._rounds))
         self._decryption_rounds = list(reversed(range(self._rounds)))
 
-    def encrypt(self, plain, tweak=bytes()):
+    def encrypt(self, plain, tweak=None):
         return self._cipher(
             input_value=plain,
             next_func=self.encrypt,
@@ -42,7 +45,7 @@ class FFX:
             tweak=tweak
         )
 
-    def decrypt(self, cipher, tweak=bytes()):
+    def decrypt(self, cipher, tweak=None):
         return self._cipher(
             input_value=cipher,
             next_func=self.decrypt,
