@@ -2,8 +2,8 @@ import math
 import operator
 
 
-class BlockCipher:
-    def encrypt(self, data):
+class RoundFunction:
+    def apply(self, data: bytes) -> bytes:
         raise NotImplementedError
 
 
@@ -24,9 +24,9 @@ def _tweak_to_bytes(tweak):
 
 
 class FFX:
-    def __init__(self, length, block_cipher: BlockCipher, rounds=10, radix=2):
+    def __init__(self, length, round_function: RoundFunction, rounds=10, radix=2):
         self._length = length
-        self._block_cipher = block_cipher
+        self._round_function = round_function
         self._rounds = rounds
 
         total_bits = int(math.ceil(math.log(length, radix)))
@@ -76,7 +76,7 @@ class FFX:
         idx_from, idx_to = start_round % 2, (start_round + 1) % 2
 
         for round_ in rounds:
-            out = self._encrypt_value(round_, val[idx_from], tweak)
+            out = self._apply_round_function(round_, val[idx_from], tweak)
             val[idx_to] = operation(val[idx_to], out) % self._modulos[idx_to]
             idx_from, idx_to = idx_to, idx_from
 
@@ -99,7 +99,7 @@ class FFX:
     def _join(self, a, b):
         return a + b * self._modulos[0]
 
-    def _encrypt_value(self, round_: int, val: int, tweak: bytes):
+    def _apply_round_function(self, round_: int, val: int, tweak: bytes):
         b = val.to_bytes(self._half_byte, 'big') + round_.to_bytes(1, 'big') + tweak
-        enc = self._block_cipher.encrypt(b)
+        enc = self._round_function.apply(b)
         return int.from_bytes(enc[:self._half_byte], 'big')
