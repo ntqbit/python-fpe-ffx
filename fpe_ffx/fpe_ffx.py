@@ -37,12 +37,21 @@ class FFX:
         self._decryption_rounds = list(reversed(range(self._rounds)))
 
     def encrypt(self, plain, tweak=None):
+        self._ensure_valid_input(plain)
         return self._encrypt(plain, _tweak_to_bytes(tweak))
 
     def decrypt(self, cipher, tweak=None):
+        self._ensure_valid_input(cipher)
         return self._decrypt(cipher, _tweak_to_bytes(tweak))
 
-    def _encrypt(self, plain, tweak):
+    def _ensure_valid_input(self, value: int):
+        if not isinstance(value, int):
+            raise ValueError(f'FFX cipher input must be an int, but got {type(value)}')
+
+        if not self._satisfies_length(value):
+            raise ValueError(f'FFX cipher input `{value}` does not satisfy length: {self._length}')
+
+    def _encrypt(self, plain: int, tweak):
         return self._cipher(
             input_value=plain,
             next_func=self._encrypt,
@@ -51,7 +60,7 @@ class FFX:
             tweak=tweak
         )
 
-    def _decrypt(self, cipher, tweak):
+    def _decrypt(self, cipher: int, tweak):
         return self._cipher(
             input_value=cipher,
             next_func=self._decrypt,
@@ -60,7 +69,7 @@ class FFX:
             tweak=tweak
         )
 
-    def _cipher(self, input_value, next_func, rounds, operation, tweak):
+    def _cipher(self, input_value: int, next_func, rounds, operation, tweak):
         val = list(self._split(input_value))
 
         start_round = rounds[0]
@@ -82,7 +91,6 @@ class FFX:
         return value < self._length
 
     def _split(self, value: int):
-        assert type(value) is int
         a = value % self._modulos[0]
         b = (value // self._modulos[0]) % self._modulos[1]
         return a, b
