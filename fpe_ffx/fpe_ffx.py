@@ -35,7 +35,7 @@ class FFX:
         return self._cipher(
             input_value=plain,
             next_func=self.encrypt,
-            round_func=lambda n: n,
+            rounds=range(self._rounds),
             operation=operator.add,
             start_round=0,
             tweak=tweak
@@ -45,20 +45,20 @@ class FFX:
         return self._cipher(
             input_value=cipher,
             next_func=self.decrypt,
-            round_func=lambda n: self._rounds - 1 - n,
+            rounds=reversed(range(self._rounds)),
             operation=operator.sub,
             start_round=self._rounds - 1,
             tweak=tweak
         )
 
-    def _cipher(self, input_value, next_func, round_func, operation, start_round, tweak):
+    def _cipher(self, input_value, next_func, rounds, operation, start_round, tweak):
         tweak = tweak_to_bytes(tweak)
 
         val = list(self._split(input_value))
         idx_from, idx_to = start_round % 2, (start_round + 1) % 2
 
-        for n in range(self._rounds):
-            out = self._encrypt_value(round_func(n), val[idx_from], tweak)
+        for round_ in rounds:
+            out = self._encrypt_value(round_, val[idx_from], tweak)
             val[idx_to] = operation(val[idx_to], out) % self._modulos[idx_to]
             idx_from, idx_to = idx_to, idx_from
 
