@@ -52,7 +52,7 @@ class FFX:
             raise ValueError(f'FFX cipher input `{value}` does not satisfy length: {self._length}')
 
     def _encrypt(self, plain: int, tweak):
-        return self._cipher(
+        return self._feistel_network(
             input_value=plain,
             next_func=self._encrypt,
             rounds=self._encryption_rounds,
@@ -61,7 +61,7 @@ class FFX:
         )
 
     def _decrypt(self, cipher: int, tweak):
-        return self._cipher(
+        return self._feistel_network(
             input_value=cipher,
             next_func=self._decrypt,
             rounds=self._decryption_rounds,
@@ -69,7 +69,7 @@ class FFX:
             tweak=tweak
         )
 
-    def _cipher(self, input_value: int, next_func, rounds, operation, tweak):
+    def _feistel_network(self, input_value: int, next_func, rounds, operation, tweak):
         val = list(self._split(input_value))
 
         start_round = rounds[0]
@@ -82,6 +82,7 @@ class FFX:
 
         output_value = self._join(*val)
 
+        # Cycle walking
         if not self._satisfies_length(output_value):
             return next_func(output_value, tweak)
 
@@ -96,9 +97,9 @@ class FFX:
         return a, b
 
     def _join(self, a, b):
-        return b * self._modulos[0] + a
+        return a + b * self._modulos[0]
 
-    def _encrypt_value(self, round: int, val: int, tweak: bytes):
-        b = val.to_bytes(self._half_byte, 'big') + round.to_bytes(1, 'big') + tweak
+    def _encrypt_value(self, round_: int, val: int, tweak: bytes):
+        b = val.to_bytes(self._half_byte, 'big') + round_.to_bytes(1, 'big') + tweak
         enc = self._block_cipher.encrypt(b)
         return int.from_bytes(enc[:self._half_byte], 'big')
