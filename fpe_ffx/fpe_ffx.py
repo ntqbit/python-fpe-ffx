@@ -1,21 +1,10 @@
 import math
 import operator
 
-from Crypto.Cipher import AES
-from Crypto.Util.Padding import pad
-
 
 class ECBCipher:
     def encrypt(self, data):
         raise NotImplementedError
-
-
-class AESECBCipher(ECBCipher):
-    def __init__(self, key):
-        self._aes_ecb = AES.new(key, AES.MODE_ECB)
-
-    def encrypt(self, data):
-        return self._aes_ecb.encrypt(pad(data, 16))
 
 
 def tweak_to_bytes(tweak):
