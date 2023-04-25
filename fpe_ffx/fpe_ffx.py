@@ -30,12 +30,14 @@ class FFX:
         half_bits = [(total_bits + 1) // 2, total_bits // 2]
         self._modulos = [radix ** half for half in half_bits]
         self._half_byte = (half_bits[0] + 7) // 8
+        self._encryption_rounds = list(range(self._rounds))
+        self._decryption_rounds = list(reversed(range(self._rounds)))
 
     def encrypt(self, plain, tweak=bytes()):
         return self._cipher(
             input_value=plain,
             next_func=self.encrypt,
-            rounds=range(self._rounds),
+            rounds=self._encryption_rounds,
             operation=operator.add,
             tweak=tweak
         )
@@ -44,7 +46,7 @@ class FFX:
         return self._cipher(
             input_value=cipher,
             next_func=self.decrypt,
-            rounds=reversed(range(self._rounds)),
+            rounds=self._decryption_rounds,
             operation=operator.sub,
             tweak=tweak
         )
