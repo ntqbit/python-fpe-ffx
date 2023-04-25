@@ -55,7 +55,6 @@ class FFX:
         )
 
     def _cipher(self, input_value, next_func, rounds, operation, tweak):
-        rounds = list(rounds)
         tweak = _tweak_to_bytes(tweak)
 
         val = list(self._split(input_value))
