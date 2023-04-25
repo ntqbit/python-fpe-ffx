@@ -8,15 +8,13 @@ class ECBCipher:
 
 
 def tweak_to_bytes(tweak):
-    tweak_type = type(tweak)
-
-    if tweak_type is bytes:
+    if isinstance(tweak, bytes):
         return tweak
 
-    if tweak_type is str:
+    if isinstance(tweak, str):
         return tweak.encode()
 
-    if tweak_type is int:
+    if isinstance(tweak, int):
         return tweak.to_bytes((tweak.bit_length() + 7) // 8, 'big')
 
     raise ValueError('Unsupported tweak type: ' + str(tweak_type))
