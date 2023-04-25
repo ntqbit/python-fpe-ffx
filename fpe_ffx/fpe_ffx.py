@@ -7,7 +7,7 @@ class ECBCipher:
         raise NotImplementedError
 
 
-def tweak_to_bytes(tweak):
+def _tweak_to_bytes(tweak):
     if tweak is None:
         return bytes()
 
@@ -56,7 +56,7 @@ class FFX:
 
     def _cipher(self, input_value, next_func, rounds, operation, tweak):
         rounds = list(rounds)
-        tweak = tweak_to_bytes(tweak)
+        tweak = _tweak_to_bytes(tweak)
 
         val = list(self._split(input_value))
 
