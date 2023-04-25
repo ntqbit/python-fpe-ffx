@@ -2,7 +2,7 @@ import math
 import operator
 
 
-class ECBCipher:
+class BlockCipher:
     def encrypt(self, data):
         raise NotImplementedError
 
@@ -24,9 +24,9 @@ def _tweak_to_bytes(tweak):
 
 
 class FFX:
-    def __init__(self, length, ecb_cipher: ECBCipher, rounds=10, radix=2):
+    def __init__(self, length, block_cipher: BlockCipher, rounds=10, radix=2):
         self._length = length
-        self._ecb = ecb_cipher
+        self._block_cipher = block_cipher
         self._rounds = rounds
 
         total_bits = int(math.ceil(math.log(length, radix)))
@@ -89,5 +89,5 @@ class FFX:
 
     def _encrypt_value(self, round: int, val: int, tweak: bytes):
         b = val.to_bytes(self._half_byte, 'big') + round.to_bytes(1, 'big') + tweak
-        enc = self._ecb.encrypt(b)
+        enc = self._block_cipher.encrypt(b)
         return int.from_bytes(enc[:self._half_byte], 'big')
