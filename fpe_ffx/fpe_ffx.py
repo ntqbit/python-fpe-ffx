@@ -8,11 +8,11 @@ class BlockCipher:
 
 
 def _tweak_to_bytes(tweak):
-    if tweak is None:
-        return bytes()
-
     if isinstance(tweak, bytes):
         return tweak
+
+    if tweak is None:
+        return bytes()
 
     if isinstance(tweak, str):
         return tweak.encode()
