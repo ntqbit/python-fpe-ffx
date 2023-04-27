@@ -12,7 +12,9 @@ setup(
                 "src/fpe_ffx.c",
                 "src/ffx.c",
                 "src/round_functions/aes_round_function.c",
-                "src/lib/aes/aes.c"
+                "src/round_functions/xtea_round_function.c",
+                "src/lib/aes/aes.c",
+                "src/lib/xtea/xtea.c"
             ]
         )
     ]

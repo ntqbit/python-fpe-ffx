@@ -15,6 +15,8 @@ typedef struct
 
 PyObject *AesRoundFunction_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);
 
+int AesRoundFunction_init(AesRoundFunction *self, PyObject *args, PyObject *kwargs);
+
 PyObject *AesRoundFunction_apply(AesRoundFunction *self, PyObject *args);
 
 static PyMethodDef AesRoundFunction_methods[] = {
@@ -27,6 +29,7 @@ static PyTypeObject AesRoundFunction_type = {
         .tp_name = "_fpe_ffx.AesRoundFunction",
     .tp_basicsize = sizeof(AesRoundFunction),
     .tp_base = &PyBaseObject_Type,
-    .tp_flags = Py_TPFLAGS_DEFAULT,
+    .tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,
     .tp_new = AesRoundFunction_new,
+    .tp_init = (initproc)AesRoundFunction_init,
     .tp_methods = AesRoundFunction_methods};

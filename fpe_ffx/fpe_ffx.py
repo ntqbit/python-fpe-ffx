@@ -25,19 +25,19 @@ def _tweak_to_bytes(tweak):
     raise ValueError('Unsupported tweak type: ' + str(tweak_type))
 
 
-class FFX:
+class FFX(_fpe_ffx.FFX):
     def __init__(self, length, round_function: RoundFunction, rounds=10, radix=2):
-        self._length = length
+        super().__init__(length, round_function, rounds, radix)
 
-        self._ffx = _fpe_ffx.FFX(length, round_function, rounds, radix)
+        self._length = length
 
     def encrypt(self, plain, tweak=None):
         self._ensure_valid_input(plain)
-        return self._ffx.cipher(plain, True, _tweak_to_bytes(tweak))
+        return self.cipher(plain, True, _tweak_to_bytes(tweak))
 
     def decrypt(self, plain, tweak=None):
         self._ensure_valid_input(plain)
-        return self._ffx.cipher(plain, False, _tweak_to_bytes(tweak))
+        return self.cipher(plain, False, _tweak_to_bytes(tweak))
 
     def _ensure_valid_input(self, value: int):
         if not isinstance(value, int):

@@ -4,6 +4,7 @@
 
 #include "ffx.h"
 #include "round_functions/aes_round_function.h"
+#include "round_functions/xtea_round_function.h"
 
 // MODULE
 static PyMethodDef module_methods[] = {
@@ -26,8 +27,12 @@ PyMODINIT_FUNC PyInit__fpe_ffx(void)
     if (PyType_Ready(&AesRoundFunction_type) < 0)
         return NULL;
 
+    if (PyType_Ready(&XteaRoundFunction_type) < 0)
+        return NULL;
+
     PyModule_AddObject(m, "FFX", (PyObject *)&FFX_type);
     PyModule_AddObject(m, "AesRoundFunction", (PyObject *)&AesRoundFunction_type);
+    PyModule_AddObject(m, "XteaRoundFunction", (PyObject *)&XteaRoundFunction_type);
 
     return m;
 }

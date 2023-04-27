@@ -1,3 +1,6 @@
 import _fpe_ffx
 
-AesRoundFunction = _fpe_ffx.AesRoundFunction
+
+class AesRoundFunction(_fpe_ffx.AesRoundFunction):
+    def __init__(self, key: bytes):
+        super().__init__(key)

@@ -2,7 +2,7 @@ import random
 import unittest
 
 from fpe_ffx.fpe_ffx import FFX, RoundFunction
-from fpe_ffx.round_functions import AesRoundFunction
+from fpe_ffx.round_functions import AesRoundFunction, XteaRoundFunction
 
 
 class NoRoundFunction(RoundFunction):
@@ -16,6 +16,9 @@ class FpeFfxTest(unittest.TestCase):
 
     def test_aes(self):
         self._test_round_function(AesRoundFunction(b'0' * 16))
+
+    def test_xtea(self):
+        self._test_round_function(XteaRoundFunction(b'0' * 16))
 
     def _test_round_function(self, round_function):
         self._test_ffx_small(round_function)

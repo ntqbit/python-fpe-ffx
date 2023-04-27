@@ -2,18 +2,16 @@
 
 PyObject *FFX_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    FFX *self = (FFX *)type->tp_alloc(type, 0);
-    if (self == NULL)
-        return NULL;
+    return type->tp_alloc(type, 0);
+}
 
+int FFX_init(FFX *self, PyObject *args, PyObject *kwargs)
+{
     PyObject *length, *round_function, *radix;
     int rounds;
 
     if (!PyArg_ParseTuple(args, "OOiO", &length, &round_function, &rounds, &radix))
-    {
-        Py_DECREF(self);
-        return NULL;
-    }
+        return -1;
 
     self->length = length;
     self->round_function = round_function;
@@ -21,17 +19,13 @@ PyObject *FFX_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     PyObject *math_module = PyImport_ImportModule("math");
     if (math_module == NULL)
-    {
-        Py_DECREF(self);
-        return NULL;
-    }
+        return -1;
 
     PyObject *log_func = PyObject_GetAttrString(math_module, "log");
     if (log_func == NULL)
     {
         Py_DECREF(math_module);
-        Py_DECREF(self);
-        return NULL;
+        return -1;
     }
 
     double result = PyFloat_AsDouble(PyObject_CallFunctionObjArgs(log_func, length, radix, NULL));
@@ -39,8 +33,7 @@ PyObject *FFX_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     {
         Py_DECREF(log_func);
         Py_DECREF(math_module);
-        Py_DECREF(self);
-        return NULL;
+        return -1;
     }
 
     int total_bits = (int)ceil(result);
@@ -59,8 +52,15 @@ PyObject *FFX_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     Py_INCREF(length);
     Py_INCREF(round_function);
+    return 0;
+}
 
-    return (PyObject *)self;
+void FFX_dealloc(FFX *self)
+{
+    Py_DECREF(self->length);
+    Py_DECREF(self->round_function);
+    Py_DECREF(self->modulos[0]);
+    Py_DECREF(self->modulos[1]);
 }
 
 static PyObject *split(FFX *self, PyObject *val, PyObject **vals)

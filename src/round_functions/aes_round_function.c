@@ -2,26 +2,27 @@
 
 PyObject *AesRoundFunction_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    AesRoundFunction *self = (AesRoundFunction *)type->tp_alloc(type, 0);
-    if (self == NULL)
-        return NULL;
+    return type->tp_alloc(type, 0);
+}
 
+int AesRoundFunction_init(AesRoundFunction *self, PyObject *args, PyObject *kwargs)
+{
     PyObject *key;
 
     if (!PyArg_ParseTuple(args, "S", &key))
     {
         Py_DECREF(self);
-        return NULL;
+        return -1;
     }
 
     if (PyBytes_GET_SIZE(key) != 16)
     {
         Py_DECREF(self);
-        return NULL;
+        return -1;
     }
 
     AES_init_ctx(&self->aes_ctx, (const unsigned char *)PyBytes_AS_STRING(key));
-    return self;
+    return 0;
 }
 
 PyObject *AesRoundFunction_apply(AesRoundFunction *self, PyObject *args)
