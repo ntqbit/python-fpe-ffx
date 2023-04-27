@@ -1,6 +1,8 @@
 import math
 import operator
 
+import _fpe_ffx
+
 
 class RoundFunction:
     def apply(self, data: bytes) -> bytes:
@@ -26,80 +28,20 @@ def _tweak_to_bytes(tweak):
 class FFX:
     def __init__(self, length, round_function: RoundFunction, rounds=10, radix=2):
         self._length = length
-        self._round_function = round_function
-        self._rounds = rounds
 
-        total_bits = int(math.ceil(math.log(length, radix)))
-        half_bits = [(total_bits + 1) // 2, total_bits // 2]
-        self._modulos = [radix ** half for half in half_bits]
-        self._half_byte = (half_bits[0] + 7) // 8
-        self._encryption_rounds = list(range(self._rounds))
-        self._decryption_rounds = list(reversed(range(self._rounds)))
+        self._ffx = _fpe_ffx.FFX(length, round_function, rounds, radix)
 
     def encrypt(self, plain, tweak=None):
         self._ensure_valid_input(plain)
-        return self._encrypt(plain, _tweak_to_bytes(tweak))
+        return self._ffx.cipher(plain, True, _tweak_to_bytes(tweak))
 
-    def decrypt(self, cipher, tweak=None):
-        self._ensure_valid_input(cipher)
-        return self._decrypt(cipher, _tweak_to_bytes(tweak))
+    def decrypt(self, plain, tweak=None):
+        self._ensure_valid_input(plain)
+        return self._ffx.cipher(plain, False, _tweak_to_bytes(tweak))
 
     def _ensure_valid_input(self, value: int):
         if not isinstance(value, int):
             raise ValueError(f'FFX cipher input must be an int, but got {type(value)}')
 
-        if not self._satisfies_length(value):
+        if value >= self._length:
             raise ValueError(f'FFX cipher input `{value}` does not satisfy length: {self._length}')
-
-    def _encrypt(self, plain: int, tweak):
-        return self._feistel_network(
-            input_value=plain,
-            next_func=self._encrypt,
-            rounds=self._encryption_rounds,
-            operation=operator.add,
-            tweak=tweak
-        )
-
-    def _decrypt(self, cipher: int, tweak):
-        return self._feistel_network(
-            input_value=cipher,
-            next_func=self._decrypt,
-            rounds=self._decryption_rounds,
-            operation=operator.sub,
-            tweak=tweak
-        )
-
-    def _feistel_network(self, input_value: int, next_func, rounds, operation, tweak):
-        val = list(self._split(input_value))
-
-        start_round = rounds[0]
-        idx_from, idx_to = start_round % 2, (start_round + 1) % 2
-
-        for round_ in rounds:
-            out = self._apply_round_function(round_, val[idx_from], tweak)
-            val[idx_to] = operation(val[idx_to], out) % self._modulos[idx_to]
-            idx_from, idx_to = idx_to, idx_from
-
-        output_value = self._join(*val)
-
-        # Cycle walking
-        if not self._satisfies_length(output_value):
-            return next_func(output_value, tweak)
-
-        return output_value
-
-    def _satisfies_length(self, value):
-        return value < self._length
-
-    def _split(self, value: int):
-        a = value % self._modulos[0]
-        b = (value // self._modulos[0]) % self._modulos[1]
-        return a, b
-
-    def _join(self, a, b):
-        return a + b * self._modulos[0]
-
-    def _apply_round_function(self, round_: int, val: int, tweak: bytes):
-        b = val.to_bytes(self._half_byte, 'big') + round_.to_bytes(1, 'big') + tweak
-        enc = self._round_function.apply(b)
-        return int.from_bytes(enc[:self._half_byte], 'big')
