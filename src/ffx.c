@@ -28,7 +28,9 @@ int FFX_init(FFX *self, PyObject *args, PyObject *kwargs)
         return -1;
     }
 
-    double result = PyFloat_AsDouble(PyObject_CallFunctionObjArgs(log_func, length, radix, NULL));
+    PyObject *result_obj = PyObject_CallFunctionObjArgs(log_func, length, radix, NULL);
+    double result = PyFloat_AsDouble(result_obj);
+    Py_DECREF(result_obj);
     if (result == -1.0 && PyErr_Occurred())
     {
         Py_DECREF(log_func);
@@ -61,6 +63,7 @@ void FFX_dealloc(FFX *self)
     Py_DECREF(self->round_function);
     Py_DECREF(self->modulos[0]);
     Py_DECREF(self->modulos[1]);
+    Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 static PyObject *split(FFX *self, PyObject *val, PyObject **vals)
@@ -134,6 +137,7 @@ static PyObject *encrypt(FFX *self, PyObject *plaintext, PyObject *tweak)
         PyObject *op_val = PyNumber_Add(vals[idx_to], enc_val);
         PyObject *new_val = PyNumber_Remainder(op_val, self->modulos[idx_to]);
 
+        Py_DECREF(enc_val);
         Py_DECREF(op_val);
         Py_DECREF(vals[idx_to]);
         vals[idx_to] = new_val;
@@ -192,6 +196,7 @@ static PyObject *decrypt(FFX *self, PyObject *ciphertext, PyObject *tweak)
         PyObject *op_val = PyNumber_Subtract(vals[idx_to], enc_val);
         PyObject *new_val = PyNumber_Remainder(op_val, self->modulos[idx_to]);
 
+        Py_DECREF(enc_val);
         Py_DECREF(op_val);
         Py_DECREF(vals[idx_to]);
         vals[idx_to] = new_val;
