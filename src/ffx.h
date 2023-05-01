@@ -8,12 +8,12 @@ typedef struct
 {
     PyObject_HEAD;
 
-    PyObject *length;
     PyObject *round_function;
+    PyObject *maxval;
     int rounds;
 
     PyObject *modulos[2];
-    int half_byte;
+    int half_length_byte;
 } FFX;
 
 PyObject *FFX_new(PyTypeObject *type, PyObject *args, PyObject *kwargs);

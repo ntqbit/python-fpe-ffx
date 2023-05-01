@@ -1,5 +1,4 @@
 import math
-import operator
 
 import _fpe_ffx
 
@@ -26,10 +25,18 @@ def _tweak_to_bytes(tweak):
 
 
 class FFX(_fpe_ffx.FFX):
-    def __init__(self, length, round_function: RoundFunction, rounds=10, radix=2):
-        super().__init__(length, round_function, rounds, radix)
+    def __init__(self, round_function: RoundFunction, maxval=None, length=None, rounds=10, radix=2):
+        if maxval is None and length is None:
+            raise ValueError('You must specify either maxval or length')
 
-        self._length = length
+        if maxval is None:
+            maxval = radix ** length
+        if length is None:
+            length = int(math.ceil(math.log(maxval, radix)))
+
+        super().__init__(round_function=round_function, maxval=maxval, length=length, rounds=rounds, radix=radix)
+
+        self._maxval = maxval
 
     def encrypt(self, plain, tweak=None):
         self._ensure_valid_input(plain)
@@ -41,7 +48,7 @@ class FFX(_fpe_ffx.FFX):
 
     def _ensure_valid_input(self, value: int):
         if not isinstance(value, int):
-            raise ValueError(f'FFX cipher input must be an int, but got {type(value)}')
+            raise ValueError(f'FFX cipher input must be an int, but {type(value)} was passed')
 
-        if value >= self._length:
-            raise ValueError(f'FFX cipher input `{value}` does not satisfy length: {self._length}')
+        if value >= self._maxval:
+            raise ValueError(f'FFX cipher input `{value}` does not satisfy maximum value: {self._maxval}')

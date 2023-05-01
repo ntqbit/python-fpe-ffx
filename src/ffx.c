@@ -7,62 +7,45 @@ PyObject *FFX_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
 int FFX_init(FFX *self, PyObject *args, PyObject *kwargs)
 {
-    PyObject *length, *round_function, *radix;
-    int rounds;
+    PyObject *round_function, *maxval, *radix;
+    int length, rounds;
 
-    if (!PyArg_ParseTuple(args, "OOiO", &length, &round_function, &rounds, &radix))
+    static const char *kwlist[] = {"round_function", "maxval", "length", "rounds", "radix", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "OOiiO", kwlist,
+                                     &round_function, &maxval, &length, &rounds, &radix))
         return -1;
 
-    self->length = length;
+    Py_INCREF(round_function);
+    Py_INCREF(maxval);
+
     self->round_function = round_function;
+    self->maxval = maxval;
     self->rounds = rounds;
 
-    PyObject *math_module = PyImport_ImportModule("math");
-    if (math_module == NULL)
-        return -1;
+    int half_length_2 = length / 2;
+    int half_length_1 = length - half_length_2;
 
-    PyObject *log_func = PyObject_GetAttrString(math_module, "log");
-    if (log_func == NULL)
-    {
-        Py_DECREF(math_module);
-        return -1;
-    }
+    PyObject *half_length_1_obj = PyLong_FromLong(half_length_1);
+    PyObject *half_length_2_obj = PyLong_FromLong(half_length_2);
 
-    PyObject *result_obj = PyObject_CallFunctionObjArgs(log_func, length, radix, NULL);
-    double result = PyFloat_AsDouble(result_obj);
-    Py_DECREF(result_obj);
-    if (result == -1.0 && PyErr_Occurred())
-    {
-        Py_DECREF(log_func);
-        Py_DECREF(math_module);
-        return -1;
-    }
+    self->modulos[0] = PyNumber_Power(radix, half_length_1_obj, Py_None);
+    self->modulos[1] = PyNumber_Power(radix, half_length_2_obj, Py_None);
+    self->half_length_byte = (ceil(half_length_1 * log2(PyLong_AsDouble(radix))) + 7) / 8;
 
-    int total_bits = (int)ceil(result);
-    int half_bits[2] = {(total_bits + 1) / 2, total_bits / 2};
-
-    PyObject *half_bits_o[2] = {PyLong_FromLong(half_bits[0]), PyLong_FromLong(half_bits[1])};
-
-    self->modulos[0] = PyNumber_Power(radix, half_bits_o[0], Py_None);
-    self->modulos[1] = PyNumber_Power(radix, half_bits_o[1], Py_None);
-    self->half_byte = (ceil(half_bits[0] * log2(PyLong_AsLong(radix))) + 7) / 8;
-
-    Py_DECREF(log_func);
-    Py_DECREF(math_module);
-    Py_DECREF(half_bits_o[0]);
-    Py_DECREF(half_bits_o[1]);
-
-    Py_INCREF(length);
-    Py_INCREF(round_function);
+    Py_DECREF(half_length_1_obj);
+    Py_DECREF(half_length_2_obj);
     return 0;
 }
 
 void FFX_dealloc(FFX *self)
 {
-    Py_DECREF(self->length);
+    Py_DECREF(self->maxval);
     Py_DECREF(self->round_function);
+
     Py_DECREF(self->modulos[0]);
     Py_DECREF(self->modulos[1]);
+
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -92,22 +75,22 @@ static PyObject *apply_round_function(FFX *self, PyObject *val, int round, PyObj
     // return int.from_bytes(enc[:self._half_byte], 'big')
 
     unsigned char *round_function_input_bytes_ptr = (unsigned char *)PyBytes_AS_STRING(round_function_input_bytes);
-    _PyLong_AsByteArray((PyLongObject *)val, round_function_input_bytes_ptr, self->half_byte, 0, 0);
-    round_function_input_bytes_ptr[self->half_byte] = (unsigned char)round;
+    _PyLong_AsByteArray((PyLongObject *)val, round_function_input_bytes_ptr, self->half_length_byte, 0, 0);
+    round_function_input_bytes_ptr[self->half_length_byte] = (unsigned char)round;
 
     PyObject *round_function_result = PyObject_CallMethod(self->round_function, "apply", "O", round_function_input_bytes);
 
     if (round_function_result == NULL)
         return NULL;
 
-    if (PyBytes_GET_SIZE(round_function_result) < self->half_byte)
+    if (PyBytes_GET_SIZE(round_function_result) < self->half_length_byte)
     {
         // TODO: throw an exception
         Py_DECREF(round_function_result);
         return NULL;
     }
 
-    PyObject *enc_val = _PyLong_FromByteArray((unsigned char *)PyBytes_AS_STRING(round_function_result), self->half_byte, 0, 0);
+    PyObject *enc_val = _PyLong_FromByteArray((unsigned char *)PyBytes_AS_STRING(round_function_result), self->half_length_byte, 0, 0);
     Py_DECREF(round_function_result);
     return enc_val;
 }
@@ -118,7 +101,7 @@ static PyObject *encrypt(FFX *self, PyObject *plaintext, PyObject *tweak)
     split(self, plaintext, vals);
 
     Py_ssize_t tweak_size = PyBytes_GET_SIZE(tweak);
-    Py_ssize_t round_function_input_size = self->half_byte + 1 + tweak_size;
+    Py_ssize_t round_function_input_size = self->half_length_byte + 1 + tweak_size;
     PyObject *round_function_input_bytes = PyBytes_FromStringAndSize(NULL, round_function_input_size);
 
     int idx_from = 0, idx_to = 1;
@@ -155,7 +138,7 @@ static PyObject *encrypt(FFX *self, PyObject *plaintext, PyObject *tweak)
     Py_DECREF(round_function_input_bytes);
 
     // Check if satisfies length
-    int cmp = PyObject_RichCompareBool(output_value, self->length, Py_LT);
+    int cmp = PyObject_RichCompareBool(output_value, self->maxval, Py_LT);
     assert(cmp != -1);
 
     if (cmp == 0)
@@ -176,7 +159,7 @@ static PyObject *decrypt(FFX *self, PyObject *ciphertext, PyObject *tweak)
     split(self, ciphertext, vals);
 
     Py_ssize_t tweak_size = PyBytes_GET_SIZE(tweak);
-    Py_ssize_t round_function_input_size = self->half_byte + 1 + tweak_size;
+    Py_ssize_t round_function_input_size = self->half_length_byte + 1 + tweak_size;
     PyObject *round_function_input_bytes = PyBytes_FromStringAndSize(NULL, round_function_input_size);
 
     int idx_from = (self->rounds - 1) % 2;
@@ -214,7 +197,7 @@ static PyObject *decrypt(FFX *self, PyObject *ciphertext, PyObject *tweak)
     Py_DECREF(round_function_input_bytes);
 
     // Check if satisfies length
-    int cmp = PyObject_RichCompareBool(output_value, self->length, Py_LT);
+    int cmp = PyObject_RichCompareBool(output_value, self->maxval, Py_LT);
     assert(cmp != -1);
 
     if (cmp == 0)
