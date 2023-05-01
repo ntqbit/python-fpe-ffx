@@ -45,7 +45,7 @@ int FFX_init(FFX *self, PyObject *args, PyObject *kwargs)
 
     self->modulos[0] = PyNumber_Power(radix, half_bits_o[0], Py_None);
     self->modulos[1] = PyNumber_Power(radix, half_bits_o[1], Py_None);
-    self->half_byte = (half_bits[0] + 7) / 8;
+    self->half_byte = (ceil(half_bits[0] * log2(PyLong_AsLong(radix))) + 7) / 8;
 
     Py_DECREF(log_func);
     Py_DECREF(math_module);
@@ -66,7 +66,7 @@ void FFX_dealloc(FFX *self)
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
-static PyObject *split(FFX *self, PyObject *val, PyObject **vals)
+static void split(FFX *self, PyObject *val, PyObject **vals)
 {
     // a = value % self._modulos[0]
     // b = (value // self._modulos[0]) % self._modulos[1]
@@ -92,7 +92,7 @@ static PyObject *apply_round_function(FFX *self, PyObject *val, int round, PyObj
     // return int.from_bytes(enc[:self._half_byte], 'big')
 
     unsigned char *round_function_input_bytes_ptr = (unsigned char *)PyBytes_AS_STRING(round_function_input_bytes);
-    _PyLong_AsByteArray(val, round_function_input_bytes_ptr, self->half_byte, 0, 0);
+    _PyLong_AsByteArray((PyLongObject *)val, round_function_input_bytes_ptr, self->half_byte, 0, 0);
     round_function_input_bytes_ptr[self->half_byte] = (unsigned char)round;
 
     PyObject *round_function_result = PyObject_CallMethod(self->round_function, "apply", "O", round_function_input_bytes);
@@ -107,7 +107,7 @@ static PyObject *apply_round_function(FFX *self, PyObject *val, int round, PyObj
         return NULL;
     }
 
-    PyObject *enc_val = _PyLong_FromByteArray(PyBytes_AS_STRING(round_function_result), self->half_byte, 0, 0);
+    PyObject *enc_val = _PyLong_FromByteArray((unsigned char *)PyBytes_AS_STRING(round_function_result), self->half_byte, 0, 0);
     Py_DECREF(round_function_result);
     return enc_val;
 }
