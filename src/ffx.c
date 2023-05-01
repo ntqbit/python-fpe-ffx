@@ -137,17 +137,20 @@ static PyObject *encrypt(FFX *self, PyObject *plaintext, PyObject *tweak)
     Py_DECREF(vals[1]);
     Py_DECREF(round_function_input_bytes);
 
-    // Check if satisfies length
-    int cmp = PyObject_RichCompareBool(output_value, self->maxval, Py_LT);
-    assert(cmp != -1);
-
-    if (cmp == 0)
+    if (self->maxval != Py_None)
     {
-        // Length of the output value is not satistied.
-        // Do cycle walking.
-        PyObject *result = encrypt(self, output_value, tweak);
-        Py_DECREF(output_value);
-        return result;
+        // Check if satisfies length
+        int cmp = PyObject_RichCompareBool(output_value, self->maxval, Py_LT);
+        assert(cmp != -1);
+
+        if (cmp == 0)
+        {
+            // Length of the output value is not satistied.
+            // Do cycle walking.
+            PyObject *result = encrypt(self, output_value, tweak);
+            Py_DECREF(output_value);
+            return result;
+        }
     }
 
     return output_value;
@@ -196,17 +199,20 @@ static PyObject *decrypt(FFX *self, PyObject *ciphertext, PyObject *tweak)
     Py_DECREF(vals[1]);
     Py_DECREF(round_function_input_bytes);
 
-    // Check if satisfies length
-    int cmp = PyObject_RichCompareBool(output_value, self->maxval, Py_LT);
-    assert(cmp != -1);
-
-    if (cmp == 0)
+    if (self->maxval != Py_None)
     {
-        // Length of the output value is not satistied.
-        // Do cycle walking.
-        PyObject *result = decrypt(self, output_value, tweak);
-        Py_DECREF(output_value);
-        return result;
+        // Check if satisfies length
+        int cmp = PyObject_RichCompareBool(output_value, self->maxval, Py_LT);
+        assert(cmp != -1);
+
+        if (cmp == 0)
+        {
+            // Length of the output value is not satistied.
+            // Do cycle walking.
+            PyObject *result = decrypt(self, output_value, tweak);
+            Py_DECREF(output_value);
+            return result;
+        }
     }
 
     return output_value;

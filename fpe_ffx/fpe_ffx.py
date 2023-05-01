@@ -29,8 +29,6 @@ class FFX(_fpe_ffx.FFX):
         if maxval is None and length is None:
             raise ValueError('You must specify either maxval or length')
 
-        if maxval is None:
-            maxval = radix ** length
         if length is None:
             length = int(math.ceil(math.log(maxval, radix)))
 
@@ -50,5 +48,5 @@ class FFX(_fpe_ffx.FFX):
         if not isinstance(value, int):
             raise ValueError(f'FFX cipher input must be an int, but {type(value)} was passed')
 
-        if value >= self._maxval:
+        if self._maxval is not None and value >= self._maxval:
             raise ValueError(f'FFX cipher input `{value}` does not satisfy maximum value: {self._maxval}')
